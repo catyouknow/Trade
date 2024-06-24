@@ -22,9 +22,9 @@ logger.add(
 )
 
 try:
-    make_webhook_url = settings.MAKE_WEBHOOK_URL  # Make.com 웹훅 URL
+    make_webhook_url = "https://hook.eu2.make.com/qcv5rm1s1l4fohqm74qn7gmk2bhkajuv"  # Make.com 웹훅 URL
 except Exception as e:
-    print("웹훅 URL이 유효하지 않습니다: ", settings.MAKE_WEBHOOK_URL)
+    print("웹훅 URL이 유효하지 않습니다: ")
 
 
 def get_error(e):
