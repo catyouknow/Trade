@@ -2,7 +2,7 @@ import sys
 from exchange.model import MarketOrder, COST_BASED_ORDER_EXCHANGES, STOCK_EXCHANGES
 from exchange.utility import settings
 from datetime import datetime, timedelta
-from dhooks import Webhook, Embed
+import requests
 from loguru import logger
 from devtools import debug, pformat
 import traceback
@@ -22,10 +22,9 @@ logger.add(
 )
 
 try:
-    url = settings.DISCORD_WEBHOOK_URL.replace("discordapp", "discord")
-    hook = Webhook(url)
+    make_webhook_url = settings.MAKE_WEBHOOK_URL  # Make.com 웹훅 URL
 except Exception as e:
-    print("웹훅 URL이 유효하지 않습니다: ", settings.DISCORD_WEBHOOK_URL)
+    print("웹훅 URL이 유효하지 않습니다: ", settings.MAKE_WEBHOOK_URL)
 
 
 def get_error(e):
@@ -34,7 +33,6 @@ def get_error(e):
     error_msg = []
 
     for tb_info in tb:
-        # if target_folder in tb_info.filename:
         error_msg.append(f"File {tb_info.filename}, line {tb_info.lineno}, in {tb_info.name}")
         if "raise error." in tb_info.line:
             continue
@@ -56,13 +54,15 @@ def logger_test():
     logger.info(date)
 
 
-def log_message(message="None", embed: Embed = None):
-    if hook:
-        if embed:
-            hook.send(embed=embed)
-        else:
-            hook.send(message)
-        # hook.send(str(message), embed)
+def log_message(message="None", embed=None):
+    if make_webhook_url:
+        payload = {
+            "content": message,
+            "embeds": [embed] if embed else []
+        }
+        response = requests.post(make_webhook_url, json=payload)
+        if response.status_code != 200:
+            logger.error(f"웹훅 호출 실패: {response.status_code} - {response.text}")
     else:
         logger.info(message)
         print(message)
