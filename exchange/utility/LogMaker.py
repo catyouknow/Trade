@@ -54,11 +54,10 @@ def logger_test():
     logger.info(date)
 
 
-def log_message(message="None", embed=None):
+def log_message(message="None"):
     if make_webhook_url:
         payload = {
-            "content": message,
-            "embeds": [embed] if embed else []
+            "content": message
         }
         response = requests.post(make_webhook_url, json=payload)
         if response.status_code != 200:
@@ -66,6 +65,7 @@ def log_message(message="None", embed=None):
     else:
         logger.info(message)
         print(message)
+
 
 
 def log_order_message(exchange_name, order_result: dict, order_info: MarketOrder):
@@ -147,88 +147,45 @@ def log_order_message(exchange_name, order_result: dict, order_info: MarketOrder
 
     if exchange_name in STOCK_EXCHANGES:  # ("KRX", "NASDAQ", "NYSE", "AMEX"):
         content = f"일시\n{date}\n\n거래소\n{exchange_name}\n\n티커\n{order_info.base}\n\n거래유형\n{side}\n\n{amount}"
-        embed = Embed(
-            title=order_info.order_name,
-            description=f"체결 {exchange_name} {order_info.base} {side} {amount}",
-            color=0x0000FF,
-        )
-        embed.add_field(name="일시", value=str(date), inline=False)
-        embed.add_field(name="거래소", value=exchange_name, inline=False)
-        embed.add_field(name="티커", value=order_info.base, inline=False)
-        embed.add_field(name="거래유형", value=side, inline=False)
-        embed.add_field(name="수량", value=amount, inline=False)
-        embed.add_field(name="계좌", value=f"{order_info.kis_number}번째 계좌", inline=False)
-        log_message(content, embed)
     else:
         content = f"일시\n{date}\n\n거래소\n{exchange_name}\n\n심볼\n{symbol}\n\n거래유형\n{order_result.get('side')}\n\n{amount}"
-        embed = Embed(
-            title=order_info.order_name,
-            description=f"체결: {exchange_name} {symbol} {side} {amount}",
-            color=0x0000FF,
-        )
-        embed.add_field(name="일시", value=str(date), inline=False)
-        embed.add_field(name="거래소", value=exchange_name, inline=False)
-        embed.add_field(name="심볼", value=symbol, inline=False)
-        embed.add_field(name="거래유형", value=side, inline=False)
-        if amount:
-            embed.add_field(name=f_name, value=amount, inline=False)
-        if order_info.leverage is not None:
-            embed.add_field(name="레버리지", value=f"{order_info.leverage}배", inline=False)
-        if order_result.get("price"):
-            embed.add_field(name="체결가", value=str(order_result.get("price")), inline=False)
-        log_message(content, embed)
+
+    log_message(content)
+
 
 
 def log_hedge_message(exchange, base, quote, exchange_amount, upbit_amount, hedge):
     date = parse_time(datetime.utcnow().timestamp())
     hedge_type = "헷지" if hedge == "ON" else "헷지 종료"
-    content = f"{hedge_type}: {base} ==> {exchange}:{exchange_amount} UPBIT:{upbit_amount}"
-    embed = Embed(title="헷지", description=content, color=0x0000FF)
-    embed.add_field(name="일시", value=str(date), inline=False)
-    embed.add_field(name="거래소", value=f"{exchange}-UPBIT", inline=False)
-    embed.add_field(name="심볼", value=f"{base}/{quote}-{base}/KRW", inline=False)
-    embed.add_field(name="거래유형", value=hedge_type, inline=False)
-    embed.add_field(
-        name="수량",
-        value=f"{exchange}:{exchange_amount} UPBIT:{upbit_amount}",
-        inline=False,
+    content = (
+        f"**헷지**: {base} ==> {exchange}:{exchange_amount} UPBIT:{upbit_amount}\n"
+        f"**일시**: {date}\n"
+        f"**거래소**: {exchange}-UPBIT\n"
+        f"**심볼**: {base}/{quote}-{base}/KRW\n"
+        f"**거래유형**: {hedge_type}\n"
+        f"**수량**: {exchange}:{exchange_amount} UPBIT:{upbit_amount}"
     )
-    log_message(content, embed)
+    log_message(content)
 
 
 def log_error_message(error, name):
-    embed = Embed(title=f"{name} 에러", description=f"[{name} 에러가 발생했습니다]\n{error}", color=0xFF0000)
+    error_msg = f"[{name} 에러가 발생했습니다]\n{error}"
     logger.error(f"{name} [에러가 발생했습니다]\n{error}")
-    log_message(embed=embed)
+    log_message(error_msg)
 
 
 def log_order_error_message(error: str | Exception, order_info: MarketOrder):
     if isinstance(error, Exception):
         error = get_error(error)
 
-    if order_info is not None:
-        # discord
-        embed = Embed(
-            title=order_info.order_name,
-            description=f"[주문 오류가 발생했습니다]\n{error}",
-            color=0xFF0000,
-        )
-        log_message(embed=embed)
+    error_msg = f"[주문 오류가 발생했습니다]\n{error}"
 
-        # logger
+    if order_info is not None:
+        log_message(error_msg)
         logger.error(f"[주문 오류가 발생했습니다]\n{error}")
     else:
-        # discord
-        embed = Embed(
-            title="오류",
-            description=f"[오류가 발생했습니다]\n{error}",
-            color=0xFF0000,
-        )
-        log_message(embed=embed)
-
-        # logger
+        log_message(error_msg)
         logger.error(f"[오류가 발생했습니다]\n{error}")
-
 
 def log_validation_error_message(msg):
     logger.error(f"검증 오류가 발생했습니다\n{msg}")
@@ -245,16 +202,13 @@ def print_alert_message(order_info: MarketOrder, result="성공"):
 
 
 def log_alert_message(order_info: MarketOrder, result="성공"):
-    # discrod
-    embed = Embed(
-        title=order_info.order_name,
-        description="[웹훅 alert_message]",
-        color=0xFF0000,
-    )
     order_info_dict = order_info.dict(exclude_none=True)
+    msg = f"[웹훅 alert_message] {order_info.order_name}\n"
+
     for key, value in order_info_dict.items():
-        embed.add_field(name=key, value=str(value), inline=False)
-    log_message(embed=embed)
+        msg += f"{key}: {value}\n"
+
+    log_message(msg)
 
     # logger
     print_alert_message(order_info, result)
