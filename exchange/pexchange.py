@@ -76,7 +76,7 @@ def get_exchange(exchange_name: str, kis_number=None):
 
 def get_bot(
     exchange_name: Literal[
-        "BINANCE", "UPBIT", "BYBIT", "BITGET", "KRX", "NASDAQ", "NYSE", "AMEX", "OKX"
+        "BYBIT"
     ],
     kis_number=None,
 ) -> Binance | Upbit | Bybit | Bitget | KoreaInvestment | Okx:
